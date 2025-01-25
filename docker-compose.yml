@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+
+  config-manager:
+    build:
+      context: ./config-manager
+      dockerfile: Dockerfile
+    container_name: config_manager
+    ports:
+      - "8080:80"
+    environment:
+      - PYTHONPATH=/srv
+    volumes:
+      - ./config-manager:/srv
+    depends_on:
+      - config-db
+
+  code-analyzer:
+    build:
+      context: ./code-analyzer
+      dockerfile: Dockerfile
+    container_name: code-analyzer
+    ports:
+      - "8081:80"
+    environment:
+      - PYTHONPATH=/srv
+    volumes:
+      - ./code-analyzer:/srv
+    depends_on:
+      - config-db
+
+  code-processor:
+    build:
+      context: ./code-processor
+      dockerfile: Dockerfile
+    container_name: code_processor
+    ports:
+      - "8082:80"
+    environment:
+      - PYTHONPATH=/srv
+    volumes:
+      - ./code-processor:/srv
+    depends_on:
+      - config-db
+
+  config-db:
+    image: postgres:latest
+    container_name: config_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: config_manager
+    volumes:
+      - config_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  config_db_data:
