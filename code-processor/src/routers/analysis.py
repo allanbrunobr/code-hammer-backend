@@ -120,6 +120,12 @@ async def analyze_code(
             user_prefer.prompt = custom_prompt
             logger.info(f"[CODE-PROCESSOR] Prompt personalizado criado com {len(custom_prompt)} caracteres")
             
+            # Verificar se há código fornecido ou se deve analisar todo o projeto
+            if not request.code and not user_prefer.repository.pull_request_number:
+                logger.info(f"[CODE-PROCESSOR] Nenhum código fornecido e nenhum PR encontrado - analisando todo o projeto")
+                # Definir flag para analisar todo o projeto
+                user_prefer.analyze_full_project = True
+            
             # Enviar mensagem para processamento
             logger.info(f"[CODE-PROCESSOR] Enviando mensagem para Pub/Sub")
             message_id = process_service.sent_message(user_prefer)

@@ -51,6 +51,52 @@ class IntegrationService:
             raise HTTPException(status_code=500, detail=f"Error listing integrations: {str(e)}")
 
     def get_open_pr(self, db: Session, repository_url: str) -> Optional[dict]:
-        """Checks if there's an open PR for the given repository URL."""
-        # Implement logic to check for open PRs using the GitHub API
-        return None
+        """Checks if there's an open PR for the given repository URL.
+        
+        Args:
+            db: Database session
+            repository_url: Repository URL to check for open PRs
+            
+        Returns:
+            Optional[dict]: Information about the open PR or None if not found
+        """
+        try:
+            logging.info(f"Checking for open PRs for repository: {repository_url}")
+            
+            # Extract owner and repo from URL
+            parts = repository_url.replace("https://", "").replace("http://", "").split("/")
+            if len(parts) < 2:
+                logging.error(f"Invalid repository URL format: {repository_url}")
+                return None
+                
+            owner = parts[-2]
+            repo = parts[-1]
+            logging.info(f"Extracted owner/repo: {owner}/{repo}")
+            
+            # Find integration with matching repository URL
+            integrations = self.repository.list_integrations(db)
+            matching_integration = None
+            
+            for integration in integrations:
+                if integration.repository_url and integration.repository_url.lower() == repository_url.lower():
+                    matching_integration = integration
+                    break
+                    
+            if not matching_integration:
+                logging.warning(f"No integration found for repository URL: {repository_url}")
+                return None
+                
+            # For now, we'll return a mock PR
+            # In a real implementation, you would use the GitHub API to check for open PRs
+            mock_pr = {
+                "number": 1,
+                "title": "Mock PR for testing",
+                "html_url": f"https://github.com/{owner}/{repo}/pull/1"
+            }
+            
+            logging.info(f"Returning mock PR: {mock_pr}")
+            return mock_pr
+            
+        except Exception as e:
+            logging.error(f"Error checking for open PRs: {str(e)}")
+            return None

@@ -89,6 +89,19 @@ class UserService:
             pull_request_number = integration.get('pull_request_number')
             logger.info(f"[USER-SERVICE] Número do Pull Request: {pull_request_number or 'Não fornecido'}")
             
+            # Verificar se há um PR aberto para o repositório
+            if not pull_request_number:
+                try:
+                    logger.info(f"[USER-SERVICE] Tentando obter PR aberto para o repositório: {integration['repository_url']}")
+                    pr_info = UserService._get_open_pr(integration['repository_url'])
+                    if pr_info and 'number' in pr_info:
+                        pull_request_number = str(pr_info['number'])
+                        logger.info(f"[USER-SERVICE] PR aberto encontrado: #{pull_request_number}")
+                    else:
+                        logger.info("[USER-SERVICE] Nenhum PR aberto encontrado para o repositório")
+                except Exception as e:
+                    logger.warning(f"[USER-SERVICE] Erro ao buscar PR aberto: {str(e)}")
+            
             # Criar o objeto RepositoryDTO
             repository = RepositoryDTO(
                 type=repo_type,
@@ -202,3 +215,43 @@ class UserService:
         
         logger.warning(f"[USER-SERVICE] Formato de URL de repositório não reconhecido: {repo_url}")
         return "unknown", "unknown"
+        
+    @staticmethod
+    def _get_open_pr(repository_url: str) -> Optional[dict]:
+        """Busca um PR aberto para o repositório
+        
+        Args:
+            repository_url: URL do repositório
+            
+        Returns:
+            Optional[dict]: Informações do PR aberto ou None se não encontrado
+        """
+        try:
+            url = f"{CONFIG_MANAGER_URL}/api/v1/integrations/open_pr"
+            logger.info(f"[USER-SERVICE] Buscando PR aberto para repositório: {repository_url}")
+            
+            headers = {"Authorization": f"Bearer {Environment.get('API_TOKEN', '')}", "Accept": "application/json"}
+            params = {"repository_url": repository_url}
+            
+            response = requests.get(url, headers=headers, params=params)
+            logger.info(f"[USER-SERVICE] Status da resposta: {response.status_code}")
+            
+            if response.status_code == 200:
+                try:
+                    pr_info = response.json()
+                    if pr_info:
+                        logger.info(f"[USER-SERVICE] PR aberto encontrado: {pr_info}")
+                        return pr_info
+                    else:
+                        logger.info("[USER-SERVICE] Nenhum PR aberto encontrado")
+                        return None
+                except Exception as e:
+                    logger.error(f"[USER-SERVICE] Erro ao processar resposta JSON: {str(e)}")
+                    return None
+            else:
+                logger.error(f"[USER-SERVICE] Erro ao buscar PR aberto: Status {response.status_code}")
+                logger.error(f"[USER-SERVICE] Resposta: {response.text}")
+                return None
+        except Exception as e:
+            logger.error(f"[USER-SERVICE] Erro ao buscar PR aberto: {str(e)}")
+            return None
