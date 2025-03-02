@@ -4,9 +4,11 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from typing import List, Optional
 from uuid import UUID
+from urllib.parse import unquote
 
 from ..adapters.dtos import IntegrationDTO, IntegrationCreateDTO
 from ..repositories import IntegrationRepository
+from ..utils.environment import Environment
 
 class IntegrationService:
     def __init__(self):
@@ -50,53 +52,82 @@ class IntegrationService:
             logging.error(f"Error listing integrations: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error listing integrations: {str(e)}")
 
-    def get_open_pr(self, db: Session, repository_url: str) -> Optional[dict]:
-        """Checks if there's an open PR for the given repository URL.
-        
-        Args:
-            db: Database session
-            repository_url: Repository URL to check for open PRs
-            
-        Returns:
-            Optional[dict]: Information about the open PR or None if not found
-        """
+    def get_open_pr(self, db: Session, repository_url: str, integration_id: UUID) -> Optional[dict]:
         try:
-            logging.info(f"Checking for open PRs for repository: {repository_url}")
+            logging.info("==================== DEBUG GET OPEN PR ====================")
+            logging.info(f"Repository URL recebida: {repository_url}")
+            logging.info(f"Integration ID recebido: {integration_id}")
             
+            # Buscar a integração diretamente pelo ID
+            integration = self.repository.get_integration_by_id(db, integration_id)
+            if not integration:
+                logging.error(f"❌ Integração não encontrada com ID: {integration_id}")
+                return None
+                
             # Extract owner and repo from URL
+            repository_url = unquote(repository_url)
             parts = repository_url.replace("https://", "").replace("http://", "").split("/")
             if len(parts) < 2:
                 logging.error(f"Invalid repository URL format: {repository_url}")
                 return None
                 
-            owner = parts[-2]
-            repo = parts[-1]
-            logging.info(f"Extracted owner/repo: {owner}/{repo}")
-            
-            # Find integration with matching repository URL
-            integrations = self.repository.list_integrations(db)
-            matching_integration = None
-            
-            for integration in integrations:
-                if integration.repository_url and integration.repository_url.lower() == repository_url.lower():
-                    matching_integration = integration
-                    break
-                    
-            if not matching_integration:
-                logging.warning(f"No integration found for repository URL: {repository_url}")
-                return None
+            # Se a URL começa com github.com, remover
+            if parts[0] == "github.com" or parts[0] == "www.github.com":
+                parts = parts[1:]
                 
-            # For now, we'll return a mock PR
-            # In a real implementation, you would use the GitHub API to check for open PRs
-            mock_pr = {
-                "number": 1,
-                "title": "Mock PR for testing",
-                "html_url": f"https://github.com/{owner}/{repo}/pull/1"
+            owner = parts[0]
+            repo = parts[1]
+            logging.info(f"Owner extraído: {owner}")
+            logging.info(f"Repo extraído: {repo}")
+            
+            # Usar a API do GitHub para buscar PRs abertos
+            github_api_url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
+            logging.info(f"URL da API do GitHub: {github_api_url}")
+            
+            token = integration.repository_token
+            masked_token = f"{token[:4]}...{token[-4:]}" if token else "None"
+            logging.info(f"Token da integração (mascarado): {masked_token}")
+            
+            headers = {
+                "Authorization": f"token {integration.repository_token}",
+                "Accept": "application/vnd.github.v3+json"
             }
             
-            logging.info(f"Returning mock PR: {mock_pr}")
-            return mock_pr
+            logging.info("Headers da requisição:")
+            for key, value in headers.items():
+                if key.lower() == "authorization":
+                    logging.info(f"  {key}: token {value.split(' ')[-1][:4]}...")
+                else:
+                    logging.info(f"  {key}: {value}")
+            
+            logging.info("Fazendo requisição para a API do GitHub...")
+            response = requests.get(github_api_url, headers=headers)
+            
+            logging.info(f"Status code da resposta: {response.status_code}")
+            if response.status_code == 200:
+                prs = response.json()
+                if prs:
+                    # Pegar o PR mais recente
+                    pr = prs[0]
+                    pr_info = {
+                        "number": pr["number"],
+                        "title": pr["title"],
+                        "html_url": pr["html_url"]
+                    }
+                    logging.info(f"✅ PR encontrado: {pr_info}")
+                    logging.info("==================== FIM DEBUG ====================")
+                    return pr_info
+                else:
+                    logging.info("❌ Nenhum PR aberto encontrado")
+                    logging.info("==================== FIM DEBUG ====================")
+                    return None
+            else:
+                logging.error(f"❌ Erro na API do GitHub: {response.status_code}")
+                logging.error(f"Resposta: {response.text}")
+                logging.info("==================== FIM DEBUG ====================")
+                return None
             
         except Exception as e:
-            logging.error(f"Error checking for open PRs: {str(e)}")
+            logging.error(f"❌ Erro ao verificar PRs abertos: {str(e)}")
+            logging.info("==================== FIM DEBUG ====================")
             return None

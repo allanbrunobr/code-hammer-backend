@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID
+from urllib.parse import unquote
 
 from ..adapters.dtos import IntegrationDTO, IntegrationCreateDTO, UserDTO
 from ..services import IntegrationService
@@ -59,8 +60,12 @@ def delete_integration_endpoint(integration_id: UUID, db: Session = Depends(get_
     return integration_service.delete_integration(db, integration_id)
 
 @integration_router.get("/open_pr", response_model=Optional[dict])
-def get_open_pr(repository_url: str, db: Session = Depends(get_db)):
+def get_open_pr(
+    repository_url: str = Query(..., description="URL do repositório para verificar PRs abertos"),
+    integration_id: UUID = Query(..., description="ID da integração a ser utilizada"),
+    db: Session = Depends(get_db)
+):
     """
-    Checks if there's an open PR for the given repository URL.
+    Checks if there's an open PR for the given repository URL using the specified integration.
     """
-    return integration_service.get_open_pr(db, repository_url)
+    return integration_service.get_open_pr(db, repository_url, integration_id)
