@@ -1,24 +1,36 @@
+import logging
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from uuid import UUID
 
 from ..adapters.dtos import IntegrationCreateDTO
-from ..domain import Integration
+from ..domain.integration import Integration
 
 
 class IntegrationRepository:
     def get_integration_by_id(self, db: Session, integration_id: UUID) -> Optional[Integration]:
-        return db.query(Integration).filter(Integration.uuid == integration_id).first()
+        return db.query(Integration).filter(Integration.id == integration_id).first()
 
-    def list_integrations(self, db: Session) -> List[Integration]:
-        return db.query(Integration).all()
+    def list_integrations(self, db: Session, user_id: Optional[UUID] = None) -> List[Integration]:
+        query = db.query(Integration)
+        if user_id:
+            query = query.filter(Integration.user_id == user_id)
+        return query.all()
 
     def create_integration(self, db: Session, integration_data: IntegrationCreateDTO) -> Integration:
-        new_integration = Integration(**integration_data.dict())
-        db.add(new_integration)
-        db.commit()
-        db.refresh(new_integration)
-        return new_integration
+        try:
+            data = integration_data.dict()
+            logging.info(f"Entering create_integration with data: {data}")
+            new_integration = Integration(**data)
+            db.add(new_integration)
+            db.commit()
+            db.refresh(new_integration)
+            logging.info(f"Exiting create_integration with integration: {new_integration}")
+            return new_integration
+        except Exception as e:
+            db.rollback()
+            logging.error(f"Error in create_integration: {str(e)}")
+            raise
 
     def update_integration(self, db: Session, integration_id: UUID, integration_data: IntegrationCreateDTO) -> Optional[Integration]:
         integration = self.get_integration_by_id(db, integration_id)

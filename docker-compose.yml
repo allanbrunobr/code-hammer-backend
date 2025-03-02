@@ -1,60 +1,103 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:15
+    container_name: postgresql-codehammer
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - codehammer-network
 
   config-manager:
     build:
       context: ./config-manager
       dockerfile: Dockerfile
-    container_name: config_manager
-    ports:
-      - "8080:80"
+    container_name: config-manager
+    restart: always
+    env_file:
+      - ./config-manager/.env
     environment:
-      - PYTHONPATH=/srv
-    volumes:
-      - ./config-manager:/srv
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+    ports:
+      - '8083:8083'
     depends_on:
-      - config-db
+      - db
+    networks:
+      - codehammer-network
+
+  code-processor:
+    build:
+      context: ./code-processor
+      dockerfile: Dockerfile
+    container_name: code-processor
+    restart: always
+    env_file:
+      - ./code-processor/.env
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - CONFIG_MANAGER_URL=http://config-manager:8083
+      - PROJECT_ID=${PROJECT_ID}
+      - TOPIC_ID=${TOPIC_ID}
+    ports:
+      - '8084:8084'
+    depends_on:
+      - db
+      - config-manager
+    networks:
+      - codehammer-network
 
   code-analyzer:
     build:
       context: ./code-analyzer
       dockerfile: Dockerfile
     container_name: code-analyzer
-    ports:
-      - "8081:80"
+    restart: always
+    env_file:
+      - ./code-analyzer/.env
     environment:
-      - PYTHONPATH=/srv
+      - PROJECT_ID=${PROJECT_ID}
+      - SUBSCRIPTION_ID=${SUBSCRIPTION_ID}
+      - GOOGLE_AI_MODEL_NAME=${GOOGLE_AI_MODEL_NAME}
+      - GOOGLE_PROJECT=${GOOGLE_PROJECT}
+      - GOOGLE_LOCATION=${GOOGLE_LOCATION}
+    ports:
+      - '8082:8082'
     volumes:
-      - ./code-analyzer:/srv
+      - ${GOOGLE_APPLICATION_CREDENTIALS_PATH}:/app/credentials.json
     depends_on:
-      - config-db
+      - code-processor
+    networks:
+      - codehammer-network
 
-  code-processor:
+  portal-web:
     build:
-      context: ./code-processor
+      context: ../portal-web
       dockerfile: Dockerfile
-    container_name: code_processor
-    ports:
-      - "8082:80"
+    container_name: portal-web
+    restart: always
     environment:
-      - PYTHONPATH=/srv
-    volumes:
-      - ./code-processor:/srv
+      - REACT_APP_API_URL=http://code-analyzer:8082
+    ports:
+      - '3000:80'
     depends_on:
-      - config-db
+      - code-analyzer
+      - config-manager
+    networks:
+      - codehammer-network
 
-  config-db:
-    image: postgres:latest
-    container_name: config_db
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: config_manager
-    volumes:
-      - config_db_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+networks:
+  codehammer-network:
+    driver: bridge
 
 volumes:
-  config_db_data:
+  postgres_data:

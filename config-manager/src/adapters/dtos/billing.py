@@ -1,8 +1,9 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from uuid import UUID
+from datetime import datetime
 
-class BillingDTO(BaseModel):
+class BillingBaseDTO(BaseModel):
     amount: str = Field(..., max_length=100)
     currency: Optional[str] = Field(None, max_length=100)
     payment_date: Optional[str] = Field(None, max_length=100)
@@ -10,14 +11,15 @@ class BillingDTO(BaseModel):
     payment_status: Optional[str] = Field(None, max_length=100)
     transaction_id: Optional[str] = Field(None, max_length=100)
     plan_id: Optional[str] = Field(None, max_length=100)
+    user_id: Optional[UUID] = None  # Adicionando user_id
 
-class BillingCreateDTO(BillingDTO):
+class BillingCreateDTO(BillingBaseDTO):
     pass
 
-class BillingDTO(BillingDTO):
-    uuid: UUID
-    created_at: Optional[str]
-    updated_at: Optional[str]
+class BillingDTO(BillingBaseDTO):
+    id: UUID
+    created_at: Optional[datetime]
+    updated_at: Optional[datetime]
 
     class Config:
         orm_mode = True

@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from uuid import UUID
+from datetime import datetime
 
 
 class IntegrationBaseDTO(BaseModel):
@@ -12,7 +13,7 @@ class IntegrationBaseDTO(BaseModel):
     repository_url: Optional[str] = Field(None, max_length=100)
     analyze_types: Optional[str] = Field(None, max_length=100)
     quality_level: Optional[str] = Field(None, max_length=100)
-    user_id: Optional[str] = Field(None, max_length=100)
+    user_id: Optional[UUID] = Field(None)
 
 
 class IntegrationCreateDTO(IntegrationBaseDTO):
@@ -20,9 +21,9 @@ class IntegrationCreateDTO(IntegrationBaseDTO):
 
 
 class IntegrationDTO(IntegrationBaseDTO):
-    uuid: UUID
-    created_at: Optional[str]
-    updated_at: Optional[str]
+    id: UUID
+    created_at: Optional[datetime]
+    updated_at: Optional[datetime]
 
     class Config:
-        orm_mode = True
+        from_attributes = True

@@ -4,12 +4,12 @@ from pyctuator.pyctuator import Pyctuator, Endpoints
 from datetime import datetime
 
 from .utils import logger, Policy, Environment
-from .routers import process
+from .routers import process, analysis
 from .core.db import Base, engine
 
 app = FastAPI(
-    title="ConfigManager",
-    description=""
+    title="CodeProcessor",
+    description="API para processamento e análise de código"
 )
 app_url = Environment.get("APPLICATION_URL")
 allow_origins = Policy.origins(app_url)
@@ -41,16 +41,21 @@ Pyctuator(
 
 @app.get("/", include_in_schema=False)
 def root():
-    return {"message": "Working..."}
+    return {
+        "message": "CodeProcessor API is running",
+        "version": "1.0.0",
+        "documentation": "/docs"
+    }
 
 api_router = APIRouter(
     prefix="/api/v1",
 )
 
-
-
+# Inicializar banco de dados
 Base.metadata.create_all(bind=engine)
 
+# Registrar routers
 api_router.include_router(process.process_router)
+api_router.include_router(analysis.analysis_router)
 
 app.include_router(api_router)

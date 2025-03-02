@@ -1,6 +1,7 @@
+import uuid
 from sqlalchemy import Column, String, Integer, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
-import uuid
+from sqlalchemy.orm import relationship
 
 from ..core.db.database import Base
 
@@ -14,3 +15,6 @@ class Plan(Base):
     description = Column(String(255))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relacionamentos
+    periods = relationship("Period", secondary="plan_periods", back_populates="plans")

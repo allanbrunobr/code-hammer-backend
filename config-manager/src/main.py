@@ -13,7 +13,7 @@ app = FastAPI(
     description=""
 )
 app_url = Environment.get("APPLICATION_URL")
-allow_origins = Policy.origins(app_url)
+allow_origins = ["http://localhost:3000"] 
 
 logger.info("Allow origins: %s", str(allow_origins))
 app.add_middleware(
@@ -22,6 +22,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 Pyctuator(
@@ -55,7 +56,7 @@ Base.metadata.create_all(bind=engine)
 api_router.include_router(plan_router)
 api_router.include_router(billing_router)
 api_router.include_router(integration_router)
-api_router.include_router(plan_router)
+api_router.include_router(user_router) # Ensure user_router is included
 api_router.include_router(subscription_router)
 
 

@@ -1,209 +1,139 @@
-# ChatAgent
+# Code Processor
 
-Este serviço é responsável por disponibilizar uma API Rest.
+A FastAPI-based service for processing and analyzing code, part of the larger code-analyzer system.
 
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/fastapi)
-![PyPI - Version](https://img.shields.io/pypi/v/fastapi?label=FastApi)
-![PyPI - Version](https://img.shields.io/pypi/v/SQLAlchemy?label=SQLAlchemy)
-![PyPI - Version](https://img.shields.io/pypi/v/uvicorn?label=Uvicorn)
+![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-latest-green.svg)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-latest-orange.svg)
+![Uvicorn](https://img.shields.io/badge/Uvicorn-latest-blue.svg)
 
-## Stack utilizada
+## Overview
 
-**Back-end:** Python, FastAPI, SQLAlchemy e Uvicorn
+The Code Processor service provides a RESTful API for analyzing code and processing requests. It is designed using clean architecture principles, with clear separation between domain logic, application services, and infrastructure adapters.
 
-## Configurando a aplicação
+## Features
 
-> Para que a aplicação possa executar, será necessário configurar as api-keys. Estas configurações podem ser feitas de duas formas, sendo elas JSON ou RAW via variável de ambiente com os dados codificado em Base64. Para a configuração em JSON e necessário a criação do arquivo `api-keys.json` na raiz do projeto.
+- Code analysis processing
+- User preference management
+- Message processing
+- PubSub integration
+- API client adapter for external services
 
-### Variáveis de ambientes para o formato RAW
+## Tech Stack
 
-> Atribua o valor para as variáveis de ambientes com os JSON codificado em Base64.
+- **Backend**: Python 3.9+, FastAPI, SQLAlchemy, Uvicorn
+- **Architecture**: Clean architecture with domain, services, routers, repositories, entities, and utils
+- **Testing**: PyTest for unit and integration tests
+- **Containerization**: Docker
 
-- APPLICATION_API_KEYS_RAW: API Keys para acesso à API
+## Project Structure
 
-### Variáveis de ambientes para o Formato JSON
-
-> Atribua o endereço do arquivo JSON para as varáveis de ambientes.
-
-- APPLICATION_API_KEYS: Arquivo onde se encontra as API Keys
-
-### Arquivo de configuração API Keys
-
-> Para adicionar uma nova API Key, deverá adicionar mais um item informando o valor da key e o nome, abaixo e demonstrado um exemplo
-
-```json
-[
-  {"value": "s2405141900-3af66526e0a344fee6f1a1ac3fa2", "name": "Sample"}
-]
+```
+code-processor/
+├── src/
+│   ├── adapters/         # External interfaces and DTOs
+│   │   └── dtos/         # Data Transfer Objects
+│   ├── core/             # Core application components
+│   │   └── db/           # Database configuration
+│   ├── domain/           # Business logic and entities
+│   ├── entities/         # Domain entities
+│   ├── routers/          # API endpoints
+│   ├── services/         # Application services
+│   └── utils/            # Utility functions
+├── tests/                # Test suite
+├── Dockerfile            # Docker configuration
+├── local.py              # Local development script
+├── main.py               # Application entry point
+└── requirements.txt      # Project dependencies
 ```
 
-## Inicializando o projeto
+## Configuration
 
-Caso esteja iniciando um projeto, o comando abaixo inicializa uma estrutura padrão para que possa da continuidade. Caso deseja inicializar uma estrutura padrão execute o comando fornecido abaixo.
+### API Keys
 
-> Para o comando abaixo, será executado informando o nome `sample`, título `Sample` e o caminho `/v1` 
+API Keys are required for accessing the API. These can be configured in two ways:
+
+1. **JSON Format**: Create an `api-keys.json` file in the project root with the following structure:
+   ```json
+   [
+     {"value": "your-api-key", "name": "Key Name"}
+   ]
+   ```
+
+2. **Environment Variables**:
+   - For JSON format: `APPLICATION_API_KEYS` - Path to the JSON file containing API keys
+   - For RAW format: `APPLICATION_API_KEYS_RAW` - Base64 encoded JSON containing API keys
+
+## Running Locally
+
+### Using Python
 
 ```sh
-python.exe ./utils/initialize.py --name="sample" --title="Sample" --path="/v1"
-
+python local.py
 ```
 
-> Para ver todas as opções disponíveis execute
+This will start the application in development mode with auto-reload enabled on port 5000.
+
+### Using Docker
+
+1. Build the Docker image:
+   ```sh
+   docker build -t code-processor .
+   ```
+
+2. Run the container:
+   ```sh
+   docker run -d -p 5000:80 code-processor
+   ```
+
+3. Or, using Docker Compose:
+   ```sh
+   docker-compose up
+   ```
+
+## API Endpoints
+
+### Health Checks
+
+- **Liveness**: `GET /api/v1/actuator/health/liveness`
+
+### Documentation
+
+- **Swagger UI**: `GET /docs`
+- **OpenAPI Spec**: `GET /openapi.json`
+
+## Development
+
+### Adding New Routes
+
+1. Create a Data Transfer Object (DTO) in `src/adapters/dtos/`
+2. Create a Service in `src/services/`
+3. Create a Router in `src/routers/`
+4. Register the router in `src/main.py`
+
+### Running Tests
 
 ```sh
-python.exe ./utils/initialize.py --help
+# Run all tests
+pytest
 
+# Run a specific test file
+pytest tests/path/to/test_file.py
+
+# Run a specific test class
+pytest tests/path/to/test_file.py::TestClassName
+
+# Run a specific test method
+pytest tests/path/to/test_file.py::TestClassName::test_method_name
 ```
 
-***Obs.: O caminha informado irá ser concatenado como `/api`, informando `/v1` ficará `/api/v1`. A pasta o qual irá ficar o código-fonte do projeto nesse caso será `sample`.*** 
+## Contributing
 
-## Rodando localmente
+Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines on how to contribute to this project.
 
-Os modelos de execução demostrado abaixo, roda a aplicação na porta 5000, o qual pode ser acessada pela URL http://localhost:5000.
-Para verificar a vivacidade da execução acesse a URL http://localhost:5000/api/v1/actuator/health/liveness. Caso queira acessar a documentação acesse a URL http://localhost:5000/docs.
+## References
 
-### Executando pelo python no local
-
-Para executar no shell em modo de desenvolvedor, execute o comando abaixo
-
-```sh
-python.exe local.py
-
-```
-
-***Obs.: A aplicação irá ser rodada na porta 5000 com o reload e logs de debug habilitados***
-
-### Executando pelo docker no local
-
-Iremos realizar o build, supondo que o projeto seja `api-sample`, após o build completar deverá ser iniciado o servidor expondo a porta 5000, execute os comandos abaixo.
-
-> Realizando o build
-
-```sh
-docker build -t api-sample .
-
-```
-
-> Executando o docker
-
-```sh
-docker run -d -p 5000:80 api-sample
-
-```
-
-## Adicionando rota
-
-> Iremos adicionar a rota `/items` o qual irá retornar uma lista de itens, o exemplo irá usar como nome do projeto `src`, para isso entre na pasta de código-fonte do projeto, e siga os passos a seguir.
-
-### Código-fonte
-
-Supondo que a pasta do código-fonte (o nome da pasta será o mesmo do nome do projeto) ficou como `src`, entre na pasta para realizar os próximos passos.
-
-### Criando DTO
-
-Para começarmos, iremos criar o Data Transfer Object (DTO) dentro da pasta `adapters/dtos` com o nome de arquivo `item.py`. Jogue o conteúdo abaixo no arquivo.
-
-```py
-from pydantic import BaseModel
-
-class ItemDTO(BaseModel):
-    name: str
-    description: str = None
-    price: float
-    tax: float = None
-
-```
-
-Exporte o DTO no arquivo `adapters/dtos/__init__.py` para que possa ser acessado, conforme demostrado abaixo.
-
-```py
-# other lines...
-from .item import ItemDTO as ItemDTO
-
-```
-
-### Criando Serviço
-
-Crie um serviço na pasta `services` com o nome de arquivo `item.py`.
-
-```py
-from ..adapters.dtos import ItemDTO
-
-class ItemService:
-    def all(self) -> ItemDTO:
-        item = {
-            "name": "Sample item",
-            "description": "This is just a demo item",
-            "price": 99.99,
-            "tax": 10.0
-        }
-        return ItemDTO(**item)
-
-```
-
-Exporte o serviço no arquivo `services/__init__.py` para que possa ser acessado, conforme demostrado abaixo.
-
-```py
-# other lines...
-from .item import ItemService as ItemService
-
-```
-
-### Criando Rota
-
-Agora precisamos criar a rota para ser acessada, crie a rota na pasta `routers` com o nome de arquivo `item.py`.
-
-```py
-from fastapi import APIRouter
-from ..adapters.dtos import ItemDTO
-from ..services import ItemService
-
-router = APIRouter(
-    prefix="/items",
-    tags=["items"]
-)
-item = ItemService()
-
-@router.get("/")
-def root() -> ItemDTO:
-    return item.all()
-
-```
-
-Pronto, agora que temos o DTO, serviço e rota criado só precisamos incluir a nova rota no APP. Para isso, dentro do arquivo `main.py`, realiza a inclusão conforme demostrado abaixo.
-
-```py
-# other lines...
-from .routers import item
-# other lines...
-api_router.include_router(item.router)
-# other lines...
-
-```
-
-### Resultado da nova Rota
-
-Tudo realizado e só rodar a aplicação e acessar a rota `/items` que irá apresentar um resultado conforme demostrado abaixo.
-
-```json
-[
-  {
-    "name": "Sample item",
-    "description": "This is just a demo item",
-    "price": 99.99,
-    "tax": 10
-  }
-]
-
-```
-
-## Referência
-
-- [Python Docs](https://www.python.org/doc/)
-- [FastAPI](https://fastapi.tiangolo.com/)
-- [Uvicorn](https://www.uvicorn.org/)
-- [API Gemini](https://ai.google.dev/gemini-api/docs/get-started/tutorial?hl=pt-br&lang=python)
-
-# Links uteis
-
-- [Python Package](https://pypi.org)
+- [Python Documentation](https://www.python.org/doc/)
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [SQLAlchemy Documentation](https://docs.sqlalchemy.org/)
+- [Uvicorn Documentation](https://www.uvicorn.org/)

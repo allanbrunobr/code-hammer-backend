@@ -6,7 +6,10 @@ from ..adapters.dtos import SubscriptionCreateDTO
 
 class SubscriptionRepository:
     def get_subscription_by_id(self, db: Session, subscription_id: UUID) -> Optional[Subscription]:
-        return db.query(Subscription).filter(Subscription.uuid == subscription_id).first()
+        return db.query(Subscription).filter(Subscription.id == subscription_id).first()
+
+    def get_subscription_by_user_id(self, db: Session, user_id: UUID) -> Optional[Subscription]:
+        return db.query(Subscription).filter(Subscription.user_id == user_id).first()
 
     def list_subscriptions(self, db: Session) -> List[Subscription]:
         return db.query(Subscription).all()

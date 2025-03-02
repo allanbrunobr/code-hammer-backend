@@ -21,8 +21,8 @@ class Environment:
             raise ValueError("Erro ao converter para um dicionário JSON: {}".format(e))
 
     @staticmethod
-    def get(name: str, dict_obj: bool = False) -> Any:
-        value = os.getenv(name)
+    def get(name: str, default: Any = None, dict_obj: bool = False) -> Any:
+        value = os.getenv(name, default)
 
         if dict_obj:
             try:

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from ..adapters.dtos import SubscriptionCreateDTO, SubscriptionDTO
@@ -15,6 +15,12 @@ class SubscriptionService:
         subscription = self.repository.get_subscription_by_id(db, subscription_id)
         if not subscription:
             raise HTTPException(status_code=404, detail="Subscription not found")
+        return subscription
+
+    def get_user_subscription(self, db: Session, user_id: UUID) -> Optional[SubscriptionDTO]:
+        subscription = self.repository.get_subscription_by_user_id(db, user_id)
+        if not subscription:
+            raise HTTPException(status_code=404, detail="Subscription not found for this user")
         return subscription
 
     def create_subscription(self, db: Session, subscription_data: SubscriptionCreateDTO) -> SubscriptionDTO:
