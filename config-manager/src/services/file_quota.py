@@ -33,17 +33,23 @@ class FileQuotaService:
         if not plan:
             raise HTTPException(status_code=404, detail="Plano não encontrado")
         
-        # Calcular a quantidade de arquivos avaliados
-        evaluated_files = 0
-        if subscription.remaining_file_quota == 0:
-            # Primeira vez usando, apenas conta os arquivos do PR atual
-            evaluated_files = pr_file_count
-        else:
-            # Já houve uso anterior, soma os arquivos já usados com os do PR atual
-            evaluated_files = subscription.remaining_file_quota + pr_file_count
+        # Calcular arquivos avaliados: total do plano - quota restante
+        evaluated_files = plan.file_limit - subscription.remaining_file_quota
         
-        # Calcular a quantidade de arquivos disponíveis
-        available_files = plan.file_limit - subscription.remaining_file_quota
+        # Se estiver fazendo uma simulação de análise, adicionar os arquivos do PR atual
+        if pr_file_count > 0:
+            evaluated_files += pr_file_count
+        
+        # Arquivos disponíveis: quota restante - arquivos do PR atual
+        available_files = max(0, subscription.remaining_file_quota - pr_file_count)
+        
+        # Registrar os cálculos no log para diagnóstico
+        print(f"Cálculo de quota do usuário {user_id}:")
+        print(f"  - Plano: {plan.name}, limite total: {plan.file_limit}")
+        print(f"  - Quota restante no banco: {subscription.remaining_file_quota}")
+        print(f"  - Arquivos do PR atual: {pr_file_count}")
+        print(f"  - Arquivos já avaliados: {evaluated_files}")
+        print(f"  - Arquivos disponíveis: {available_files}")
         
         return {
             "evaluated_files": evaluated_files,
@@ -55,6 +61,7 @@ class FileQuotaService:
     def update_user_file_quota(self, db: Session, user_id: UUID, pr_file_count: int) -> Dict:
         """
         Atualiza a quota de arquivos do usuário após a análise de um PR.
+        Diminui o valor de remaining_file_quota conforme o número de arquivos analisados.
         
         Args:
             db: Sessão do banco de dados
@@ -74,26 +81,36 @@ class FileQuotaService:
         if not plan:
             raise HTTPException(status_code=404, detail="Plano não encontrado")
         
-        # Atualizar a quota de arquivos restantes
-        if subscription.remaining_file_quota == 0:
-            # Primeira vez, define como o número de arquivos do PR
-            subscription.remaining_file_quota = pr_file_count
-        else:
-            # Já houve uso anterior, soma os arquivos do PR
-            subscription.remaining_file_quota += pr_file_count
+        # Lógica correta: Diminuir a quota restante pelo número de arquivos analisados
+        # Garante que não fique negativa
+        updated_remaining = max(0, subscription.remaining_file_quota - pr_file_count)
         
-        # Salvar as alterações na assinatura
+        # Registrar a atualização no log para diagnóstico
+        print(f"Atualizando quota do usuário {user_id}:")
+        print(f"  - Valor anterior: {subscription.remaining_file_quota}")
+        print(f"  - Arquivos analisados: {pr_file_count}")
+        print(f"  - Novo valor: {updated_remaining}")
+        
+        # Atualizar o valor no banco de dados
+        subscription.remaining_file_quota = updated_remaining
+        
+        # Salvar as alterações na assinatura usando um dicionário com os campos a atualizar
+        update_data = {"remaining_file_quota": updated_remaining}
         updated_subscription = self.subscription_repository.update_subscription(
             db, 
             subscription.id, 
-            {"remaining_file_quota": subscription.remaining_file_quota}
+            update_data
         )
         
-        # Calcular a quantidade de arquivos avaliados (agora já atualizada)
-        evaluated_files = updated_subscription.remaining_file_quota
+        # Verificar se a atualização foi bem-sucedida
+        if not updated_subscription:
+            raise HTTPException(status_code=500, detail="Falha ao atualizar a quota de arquivos")
         
-        # Calcular a quantidade de arquivos disponíveis
-        available_files = plan.file_limit - updated_subscription.remaining_file_quota
+        # Calcular a quantidade de arquivos avaliados (total - restantes)
+        evaluated_files = plan.file_limit - updated_subscription.remaining_file_quota
+        
+        # Calcular a quantidade de arquivos disponíveis (restantes)
+        available_files = updated_subscription.remaining_file_quota
         
         return {
             "evaluated_files": evaluated_files,

@@ -21,11 +21,32 @@ class SubscriptionRepository:
         db.refresh(new_subscription)
         return new_subscription
 
-    def update_subscription(self, db: Session, subscription_id: UUID, subscription_data: SubscriptionCreateDTO) -> Optional[Subscription]:
+    def update_subscription(self, db: Session, subscription_id: UUID, subscription_data) -> Optional[Subscription]:
+        """
+        Atualiza uma assinatura existente.
+        
+        Args:
+            db: Sessão do banco de dados
+            subscription_id: ID da assinatura a ser atualizada
+            subscription_data: Dados para atualização, pode ser DTO ou dicionário
+            
+        Returns:
+            Optional[Subscription]: Assinatura atualizada, ou None se não encontrada
+        """
         subscription = self.get_subscription_by_id(db, subscription_id)
         if subscription:
-            for key, value in subscription_data.dict(exclude_unset=True).items():
+            # Determinar se estamos lidando com um DTO ou um dicionário
+            if hasattr(subscription_data, 'dict'):
+                # É um DTO, usar o método dict()
+                data_dict = subscription_data.dict(exclude_unset=True)
+            else:
+                # É um dicionário simples
+                data_dict = subscription_data
+                
+            # Atualizar os atributos
+            for key, value in data_dict.items():
                 setattr(subscription, key, value)
+                
             db.commit()
             db.refresh(subscription)
         return subscription

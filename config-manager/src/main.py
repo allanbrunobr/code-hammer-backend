@@ -18,7 +18,7 @@ allow_origins = ["http://localhost:3000"]
 logger.info("Allow origins: %s", str(allow_origins))
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allow_origins,
+    allow_origins=["http://localhost:3000", "*"],  # Adicionando * para permitir todas as origens durante o desenvolvimento
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

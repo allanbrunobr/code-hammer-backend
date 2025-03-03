@@ -135,10 +135,17 @@ async def analyze_code(
             
             logger.info(f"[CODE-PROCESSOR] Mensagem enviada com sucesso para Pub/Sub - ID: {message_id}")
             
+            files_analyzed = 0
+            if request.pull_request_number:
+                # Supondo que você tenha uma lógica para buscar os arquivos do PR
+                # Exemplo fictício: buscar arquivos alterados via API ou outro serviço
+                files_analyzed = len(process_service.get_pr_files(user_prefer.repository))
+
             response_data = CodeAnalysisResponseDTO(
                 request_id=request_id,
                 message="Code analysis request received. Results will be processed in the background.",
-                status="processing"
+                status="processing",
+                files_analyzed=files_analyzed
             )
             
             return ApiResponseDTO(
