@@ -15,7 +15,7 @@ class RepositoryDTO(BaseModel):
     token: str = None
     owner: Optional[str] = None
     repo: Optional[str] = None
-    pull_request_number: Optional[str] = None
+    pull_request_number: Optional[int] = None
     project_id: Optional[str] = None
     repo_slug: Optional[str] = None
     pull_request_id: Optional[str] = None

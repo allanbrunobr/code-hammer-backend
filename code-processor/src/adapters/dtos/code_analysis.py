@@ -16,7 +16,7 @@ class AnalysisTypeEnum(str, Enum):
 class CodeAnalysisRequestDTO(BaseModel):
     """DTO para solicitar análise de código"""
     email: EmailStr = Field(..., description="Email do usuário")
-    code: str = Field(..., description="Código a ser analisado")
+    code: Optional[str] = None
     language: str = Field(..., description="Linguagem de programação do código")
     file_name: Optional[str] = Field(None, description="Nome do arquivo, se aplicável")
     analysis_types: List[AnalysisTypeEnum] = Field(
@@ -31,6 +31,11 @@ class CodeAnalysisRequestDTO(BaseModel):
         default=False, 
         description="Se verdadeiro, posta o resultado como comentário no repositório."
     )
+
+    pull_request_number: Optional[int] = Field( 
+        None,
+        description="Número do Pull Request a ser analisado"
+    )
     
     class Config:
         schema_extra = {
@@ -41,7 +46,8 @@ class CodeAnalysisRequestDTO(BaseModel):
                 "file_name": "example.py",
                 "analysis_types": ["codeQuality", "security"],
                 "integration_id": "550e8400-e29b-41d4-a716-446655440000",
-                "post_comment": True
+                "post_comment": True,
+                "pull_request_number": 123
             }
         }
 

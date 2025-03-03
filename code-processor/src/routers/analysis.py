@@ -77,6 +77,9 @@ async def analyze_code(
             user_prefer.language = request.language
             logger.info(f"[CODE-PROCESSOR] Idioma definido: {user_prefer.language}")
             
+            if request.pull_request_number:
+                user_prefer.repository.pull_request_number = request.pull_request_number
+                
             # Personalizar o prompt de acordo com os tipos de análise solicitados
             prompt_parts = []
             
