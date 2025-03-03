@@ -54,9 +54,10 @@ class IntegrationService:
 
     def get_open_pr(self, db: Session, repository_url: str, integration_id: UUID) -> Optional[dict]:
         try:
-            logging.info("==================== DEBUG GET OPEN PR ====================")
-            logging.info(f"Repository URL recebida: {repository_url}")
-            logging.info(f"Integration ID recebido: {integration_id}")
+            logging.info("==================== DEBUG GET OPEN PR SERVICE ====================")
+            logging.info(f"Repository URL: {repository_url}")
+            logging.info(f"Integration ID: {integration_id}")
+            logging.info(f"Tipo do Integration ID: {type(integration_id)}")
             
             # Buscar a integração diretamente pelo ID
             integration = self.repository.get_integration_by_id(db, integration_id)

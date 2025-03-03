@@ -17,6 +17,42 @@ integration_router = APIRouter(
 
 integration_service = IntegrationService()
 
+# Router separado para evitar conflitos com rotas dinâmicas
+pull_request_router = APIRouter(
+    prefix="/pull-requests",
+    tags=["Pull Requests"],
+)
+
+@pull_request_router.get("/", response_model=Optional[dict])
+def get_open_pr(
+    repository_url: str = Query(..., description="URL do repositório para verificar PRs abertos"),
+    integration_id: str = Query(..., description="ID da integração a ser utilizada"),
+    db: Session = Depends(get_db)
+):
+    """
+    Checks if there's an open PR for the given repository URL using the specified integration.
+    """
+    logging.info("==================== DEBUG GET OPEN PR ENDPOINT ====================")
+    logging.info(f"Repository URL recebida: {repository_url}")
+    logging.info(f"Integration ID recebido: {integration_id}")
+    logging.info(f"Tipo do Integration ID: {type(integration_id)}")
+    
+    try:
+        try:
+            integration_id_uuid = UUID(integration_id)
+            logging.info(f"UUID convertido com sucesso: {integration_id_uuid}")
+            result = integration_service.get_open_pr(db, repository_url, integration_id_uuid)
+            return result
+        except ValueError as e:
+            logging.error(f"Erro ao converter integration_id para UUID: {str(e)}")
+            raise HTTPException(status_code=422, detail=f"Formato inválido para integration_id: {integration_id}. Erro: {str(e)}")
+    except ValueError as e:
+        logging.error(f"Erro ao converter integration_id para UUID: {str(e)}")
+        raise HTTPException(status_code=422, detail=f"Formato inválido para integration_id: {integration_id}. Erro: {str(e)}")
+    except Exception as e:
+        logging.error(f"Erro inesperado no endpoint get_open_pr: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar PRs abertos: {str(e)}")
+
 @integration_router.get("/", response_model=List[IntegrationDTO])
 def list_integrations(
     db: Session = Depends(get_db),
@@ -59,13 +95,33 @@ def update_integration_endpoint(integration_id: UUID, integration: IntegrationCr
 def delete_integration_endpoint(integration_id: UUID, db: Session = Depends(get_db)):
     return integration_service.delete_integration(db, integration_id)
 
-@integration_router.get("/open_pr", response_model=Optional[dict])
+@integration_router.get("/get_open_pr", response_model=Optional[dict])
 def get_open_pr(
     repository_url: str = Query(..., description="URL do repositório para verificar PRs abertos"),
-    integration_id: UUID = Query(..., description="ID da integração a ser utilizada"),
+    integration_id: str = Query(..., description="ID da integração a ser utilizada"),
     db: Session = Depends(get_db)
 ):
     """
     Checks if there's an open PR for the given repository URL using the specified integration.
     """
-    return integration_service.get_open_pr(db, repository_url, integration_id)
+    logging.info("==================== DEBUG GET OPEN PR ENDPOINT ====================")
+    logging.info(f"Repository URL recebida: {repository_url}")
+    logging.info(f"Integration ID recebido: {integration_id}")
+    logging.info(f"Tipo do Integration ID: {type(integration_id)}")
+    
+    try:
+        # Tentativa de conversão explícita para UUID
+        try:
+            integration_id_uuid = UUID(integration_id)
+            logging.info(f"UUID convertido com sucesso: {integration_id_uuid}")
+            result = integration_service.get_open_pr(db, repository_url, integration_id_uuid)
+            return result
+        except ValueError as e:
+            logging.error(f"Erro ao converter integration_id para UUID: {str(e)}")
+            raise HTTPException(status_code=422, detail=f"Formato inválido para integration_id: {integration_id}. Erro: {str(e)}")
+    except ValueError as e:
+        logging.error(f"Erro ao converter integration_id para UUID: {str(e)}")
+        raise HTTPException(status_code=422, detail=f"Formato inválido para integration_id: {integration_id}. Erro: {str(e)}")
+    except Exception as e:
+        logging.error(f"Erro inesperado no endpoint get_open_pr: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar PRs abertos: {str(e)}")

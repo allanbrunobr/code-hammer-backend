@@ -4,7 +4,7 @@ from pyctuator.pyctuator import Pyctuator, Endpoints
 from datetime import datetime
 
 from .utils import logger, Policy, Environment
-from .routers import billing_router, integration_router, plan_router, user_router, subscription_router
+from .routers import billing_router, integration_router, plan_router, user_router, subscription_router, pull_request_router
 from .core.db import Base, engine
 
 
@@ -58,6 +58,7 @@ api_router.include_router(billing_router)
 api_router.include_router(integration_router)
 api_router.include_router(user_router) # Ensure user_router is included
 api_router.include_router(subscription_router)
+api_router.include_router(pull_request_router)
 
 
 

@@ -9,7 +9,19 @@ from ..domain.integration import Integration
 
 class IntegrationRepository:
     def get_integration_by_id(self, db: Session, integration_id: UUID) -> Optional[Integration]:
-        return db.query(Integration).filter(Integration.id == integration_id).first()
+        logging.info(f"Buscando integração no banco com ID: {integration_id}")
+        logging.info(f"Tipo do ID no repositório: {type(integration_id)}")
+        
+        try:
+            result = db.query(Integration).filter(Integration.id == integration_id).first()
+            if result:
+                logging.info(f"Integração encontrada: ID={result.id}, Nome={result.name}")
+            else:
+                logging.warning(f"Nenhuma integração encontrada com ID: {integration_id}")
+            return result
+        except Exception as e:
+            logging.error(f"Erro ao buscar integração por ID: {str(e)}")
+            return None
 
     def list_integrations(self, db: Session, user_id: Optional[UUID] = None) -> List[Integration]:
         query = db.query(Integration)
