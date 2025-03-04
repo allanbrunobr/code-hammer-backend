@@ -23,3 +23,4 @@ bcrypt ==4.2.0
 psycopg2
 email-validator
 firebase-admin
+stripe==7.13.0
