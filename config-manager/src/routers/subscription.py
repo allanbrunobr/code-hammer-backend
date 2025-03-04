@@ -33,3 +33,19 @@ def update_subscription_endpoint(subscription_id: UUID, subscription: Subscripti
 @subscription_router.delete("/{subscription_id}", response_model=SubscriptionDTO)
 def delete_subscription_endpoint(subscription_id: UUID, db: Session = Depends(get_db)):
     return subscription_service.delete_subscription(db, subscription_id)
+
+@subscription_router.get("/current", response_model=SubscriptionDTO)
+def get_current_subscription(email: str = None, db: Session = Depends(get_db)):
+    # Redireciona para o endpoint de usuário se o email estiver presente
+    if email:
+        from ..repositories.user import UserRepository
+        user_repo = UserRepository()
+        try:
+            user = user_repo.get_user_by_email(db, email)
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            return subscription_service.get_user_subscription(db, user.id)
+        except Exception as e:
+            raise HTTPException(status_code=404, detail=str(e))
+    else:
+        raise HTTPException(status_code=400, detail="Email is required")
