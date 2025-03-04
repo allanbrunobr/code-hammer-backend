@@ -72,7 +72,11 @@ class UserRepository:
                 
             # Atualizar campos relacionados ao Stripe
             if hasattr(user_data, 'stripe_customer_id') and user_data.stripe_customer_id is not None:
-                user.stripe_customer_id = user_data.stripe_customer_id
+                # Se o objeto user não tem o atributo stripe_customer_id ainda, setamos via setattr para evitar AttributeError
+                try:
+                    user.stripe_customer_id = user_data.stripe_customer_id
+                except AttributeError:
+                    setattr(user, 'stripe_customer_id', user_data.stripe_customer_id)
 
             user.updated_at = datetime.utcnow()
             db.commit()

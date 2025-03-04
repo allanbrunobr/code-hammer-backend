@@ -75,11 +75,17 @@ class PaymentService:
                 raise HTTPException(status_code=404, detail="Plano não encontrado")
             
             # Verifica se o usuário já tem um customer_id no Stripe
-            stripe_customer_id = user.stripe_customer_id
-            
+            # Tratamento especial para caso de objetos sem o atributo stripe_customer_id
+            try:
+                stripe_customer_id = user.stripe_customer_id
+            except AttributeError:
+                stripe_customer_id = None
+                logger.warning(f"Objeto User não possui atributo stripe_customer_id: {user.id}")
+                
             # Se não tiver, cria um novo customer no Stripe
             if not stripe_customer_id:
                 try:
+                    logger.info(f"Criando customer no Stripe para usuário {user.id} com email {user.email}")
                     customer = create_customer(
                         name=user.name,
                         email=user.email,
@@ -88,12 +94,13 @@ class PaymentService:
                     stripe_customer_id = customer.id
                     
                     # Atualiza o usuário com o ID do customer no Stripe
-                    user.stripe_customer_id = stripe_customer_id
-                    self.user_repository.update_user(self.db, user.id, user)
+                    # Usando DTO ao invés do objeto diretamente para evitar problemas de atributos
+                    update_data = {"stripe_customer_id": stripe_customer_id}
+                    self.user_repository.update_user(self.db, user.id, update_data)
                     logger.info(f"Customer do Stripe criado e associado ao usuário {user.id}: {stripe_customer_id}")
                 except Exception as e:
                     logger.error(f"Erro ao criar customer no Stripe: {str(e)}")
-                    raise HTTPException(status_code=500, detail="Erro ao criar customer no Stripe")
+                    raise HTTPException(status_code=500, detail=f"Erro ao criar customer no Stripe: {str(e)}")
             
             # Obtém o período (se especificado)
             period_id = checkout_data.period_id
@@ -107,7 +114,15 @@ class PaymentService:
                     logger.error(f"Combinação de plano {plan.id} e período {period_id} não encontrada")
                     raise HTTPException(status_code=404, detail="Combinação de plano e período não encontrada")
                 
-                stripe_price_id = plan_period.stripe_price_id
+                # Verifica se o plan_period tem stripe_price_id
+                try:
+                    stripe_price_id = plan_period.stripe_price_id
+                    if not stripe_price_id:
+                        logger.error(f"Plan Period não possui stripe_price_id definido: {plan_period.id}")
+                        raise HTTPException(status_code=500, detail="Preço do Stripe não configurado para este período de plano")
+                except AttributeError:
+                    logger.error(f"PlanPeriod não possui atributo stripe_price_id: {plan_period.id}")
+                    raise HTTPException(status_code=500, detail="Atributo stripe_price_id não encontrado no modelo PlanPeriod")
             else:
                 # Usa o preço padrão do plano (mensal)
                 stripe_price_id = plan.stripe_price_id
@@ -169,14 +184,19 @@ class PaymentService:
                 raise HTTPException(status_code=404, detail="Usuário não encontrado")
             
             # Verifica se o usuário tem um customer_id no Stripe
-            if not user.stripe_customer_id:
-                logger.error(f"Usuário {user_id} não possui um customer_id no Stripe")
+            try:
+                stripe_customer_id = user.stripe_customer_id
+                if not stripe_customer_id:
+                    logger.error(f"Usuário {user_id} não possui um customer_id no Stripe")
+                    raise HTTPException(status_code=400, detail="Usuário não possui uma conta no Stripe")
+            except AttributeError:
+                logger.error(f"Objeto User não possui atributo stripe_customer_id: {user_id}")
                 raise HTTPException(status_code=400, detail="Usuário não possui uma conta no Stripe")
             
             # Cria a sessão do portal do cliente
             try:
                 portal_session = create_customer_portal_session(
-                    customer_id=user.stripe_customer_id,
+                    customer_id=stripe_customer_id,
                     return_url=f"{self._get_app_url()}/account/billing"
                 )
                 

@@ -2,11 +2,12 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from uuid import UUID
 from ..domain import Plan
+from ..domain.plan_periods import PlanPeriod
 from ..adapters.dtos import PlanCreateDTO
 
 class PlanRepository:
     def get_plan_by_id(self, db: Session, plan_id: UUID) -> Optional[Plan]:
-        return db.query(Plan).filter(Plan.uuid == plan_id).first()
+        return db.query(Plan).filter(Plan.id == plan_id).first()
 
     def list_plans(self, db: Session) -> List[Plan]:
         return db.query(Plan).all()
@@ -33,3 +34,20 @@ class PlanRepository:
             db.delete(plan)
             db.commit()
         return plan
+
+    def get_plan_period(self, db: Session, plan_id: UUID, period_id: UUID) -> Optional[PlanPeriod]:
+        """
+        Busca um período de plano específico pelo ID do plano e ID do período.
+        
+        Args:
+            db: Sessão do banco de dados.
+            plan_id: ID do plano.
+            period_id: ID do período.
+            
+        Returns:
+            Optional[PlanPeriod]: O período de plano encontrado, ou None se não encontrado.
+        """
+        return db.query(PlanPeriod).filter(
+            PlanPeriod.plan_id == plan_id,
+            PlanPeriod.period_id == period_id
+        ).first()

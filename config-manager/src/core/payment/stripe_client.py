@@ -53,9 +53,25 @@ def create_customer(name, email, metadata=None):
     Raises:
         stripe.error.StripeError: Se ocorrer um erro na API do Stripe.
     """
+    logger.info(f"Iniciando criação de customer no Stripe para {email}")
+    
+    # Verificar se já existe um cliente com esse email
     try:
+        existing_customers = stripe.Customer.list(email=email, limit=1)
+        if existing_customers and existing_customers.data:
+            customer = existing_customers.data[0]
+            logger.info(f"Customer já existe no Stripe: {customer.id} para {email}")
+            return customer
+    except Exception as e:
+        logger.warning(f"Erro ao buscar customer existente: {str(e)}. Continuando com criação de novo customer.")
+    
+    # Criar um novo cliente
+    try:
+        # Certifique-se de que name não é None
+        safe_name = name or email.split('@')[0]
+        
         customer = stripe.Customer.create(
-            name=name,
+            name=safe_name,
             email=email,
             metadata=metadata or {}
         )
@@ -64,6 +80,9 @@ def create_customer(name, email, metadata=None):
     except stripe.error.StripeError as e:
         logger.error(f"Erro ao criar cliente no Stripe: {str(e)}")
         raise
+    except Exception as e:
+        logger.error(f"Erro inesperado ao criar cliente no Stripe: {str(e)}")
+        raise stripe.error.StripeError(f"Erro inesperado: {str(e)}")
 
 def create_checkout_session(customer_id, price_id, success_url, cancel_url, metadata=None):
     """
