@@ -4,3 +4,4 @@ from .plan import plan_router
 from .user import user_router
 from .subscription import subscription_router
 from .file_quota import file_quota_router
+from .payment import payment_router
