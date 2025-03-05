@@ -17,7 +17,7 @@ file_quota_service = FileQuotaService()
 
 # Endpoint totalmente público para diagnóstico (sem autenticação)
 @file_quota_router.get("/diagnostics/quota")
-def get_public_quota_info(pr_file_count: int = Query(3)):
+def get_public_quota_info(pr_file_count: int = Query(default=0, description="Número de arquivos no PR")):
     """
     Endpoint público para obter informações sobre quotas sem autenticação.
     Útil para diagnóstico de problemas de CORS e autenticação.
@@ -91,7 +91,7 @@ def get_public_quota_info(pr_file_count: int = Query(3)):
 
 # Endpoint para forçar a atualização do banco de dados
 @file_quota_router.post("/force-update-db")
-def force_update_database(pr_file_count: int = Query(3)):
+def force_update_database(pr_file_count: int = Query(default=0, description="Número de arquivos no PR analisado")):
     """
     Endpoint para forçar a atualização do banco de dados, diminuindo a quota.
     Este endpoint é uma solução temporária para o problema de atualização.
@@ -182,7 +182,7 @@ def force_update_database(pr_file_count: int = Query(3)):
 
 # Novo endpoint simplificado para atualização de quota
 @file_quota_router.post("/simple-update")
-def simple_update_quota(pr_file_count: int = Query(3)):
+def simple_update_quota(pr_file_count: int = Query(default=0, description="Número de arquivos no PR analisado")):
     """
     Endpoint simplificado para atualização de quota sem autenticação.
     Retorna valores fixos para permitir testes sem autenticação.
@@ -343,7 +343,7 @@ def update_quota_fallback(
     try:
         # Usar valor padrão se não for fornecido
         if pr_file_count is None:
-            pr_file_count = 3
+            pr_file_count = 0
             
         # Retornar valores fixos para testes
         print(f"Chamada ao fallback endpoint /update com pr_file_count={pr_file_count}")
