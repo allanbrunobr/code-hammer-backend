@@ -13,14 +13,19 @@ app = FastAPI(
     description=""
 )
 app_url = Environment.get("APPLICATION_URL")
-allow_origins = ["http://localhost:3000"] 
+allow_origins = [
+    "http://localhost:3000",  # React development server
+    "http://127.0.0.1:3000",  # Alternative local development URL
+    "http://localhost:8082",  # Backend URL
+    "http://127.0.0.1:8082"   # Alternative backend URL
+]
 
 logger.info("Allow origins: %s", str(allow_origins))
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "*"],  # Adicionando * para permitir todas as origens durante o desenvolvimento
+    allow_origins=allow_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["*"],
     expose_headers=["*"]
 )

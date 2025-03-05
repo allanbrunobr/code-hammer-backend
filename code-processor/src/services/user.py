@@ -87,10 +87,12 @@ class UserService:
             
             # Obter número do pull request se aplicável
             pull_request_number = integration.get('pull_request_number')
-            logger.info(f"[USER-SERVICE] Número do Pull Request: {pull_request_number or 'Não fornecido'}")
-            
-            # Verificar se há um PR aberto para o repositório
-            if not pull_request_number:
+            logger.info(f"[USER-SERVICE] Número do Pull Request da integração: {pull_request_number or 'Não fornecido'}")
+
+            # Se o PR já está na integração, não precisamos buscar por PRs abertos
+            # Esta busca só é necessária quando não temos o número do PR
+            if not pull_request_number and not code:
+                logger.info(f"[USER-SERVICE] Sem PR e sem código fornecido, tentando buscar PR aberto")
                 try:
                     logger.info(f"[USER-SERVICE] Tentando obter PR aberto para o repositório: {integration['repository_url']}")
                     pr_info = UserService._get_open_pr(integration['repository_url'])
@@ -101,6 +103,9 @@ class UserService:
                         logger.info("[USER-SERVICE] Nenhum PR aberto encontrado para o repositório")
                 except Exception as e:
                     logger.warning(f"[USER-SERVICE] Erro ao buscar PR aberto: {str(e)}")
+                    # Mesmo com erro, continuamos o fluxo
+            else:
+                logger.info(f"[USER-SERVICE] Já temos o número do PR ou código para analisar, não precisamos buscar PR aberto")
             
             # Criar o objeto RepositoryDTO
             repository = RepositoryDTO(
@@ -108,7 +113,8 @@ class UserService:
                 token=integration['repository_token'],
                 owner=owner,
                 repo=repo,
-                pull_request_number=pull_request_number
+                pull_request_number=pull_request_number,
+                integration_id=integration_id
             )
             
             # Criação do objeto UserPreferDTO
@@ -119,7 +125,8 @@ class UserService:
                 code=code,
                 email=user.email,
                 token=integration['repository_token'],
-                repository=repository
+                repository=repository,
+                post_comment=True  # Por padrão, habilitar post de comentários no PR
             )
             
             logger.info(f"[USER-SERVICE] UserPreferDTO criado com sucesso")

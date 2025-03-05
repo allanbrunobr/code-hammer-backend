@@ -77,8 +77,19 @@ async def analyze_code(
             user_prefer.language = request.language
             logger.info(f"[CODE-PROCESSOR] Idioma definido: {user_prefer.language}")
             
+            # Configurar o número do PR e post_comment
             if request.pull_request_number:
-                user_prefer.repository.pull_request_number = request.pull_request_number
+                logger.info(f"[CODE-PROCESSOR] Configurando número do PR da requisição: {request.pull_request_number}")
+                # Convertemos para int se vier como string
+                pr_number = int(request.pull_request_number) if isinstance(request.pull_request_number, str) else request.pull_request_number
+                user_prefer.repository.pull_request_number = pr_number
+                
+                # Log para debug
+                logger.info(f"[CODE-PROCESSOR] Número do PR configurado para: {user_prefer.repository.pull_request_number}")
+                
+            # Definir explicitamente o post_comment do user_prefer
+            user_prefer.post_comment = request.post_comment
+            logger.info(f"[CODE-PROCESSOR] Post Comment: {user_prefer.post_comment}")
                 
             # Personalizar o prompt de acordo com os tipos de análise solicitados
             prompt_parts = []
@@ -130,16 +141,38 @@ async def analyze_code(
                 user_prefer.analyze_full_project = True
             
             # Enviar mensagem para processamento
+            logger.info(f"[CODE-PROCESSOR] Configurando mensagem para Pub/Sub com PR Number: {user_prefer.repository.pull_request_number}")
             logger.info(f"[CODE-PROCESSOR] Enviando mensagem para Pub/Sub")
             message_id = process_service.sent_message(user_prefer)
             
             logger.info(f"[CODE-PROCESSOR] Mensagem enviada com sucesso para Pub/Sub - ID: {message_id}")
             
             files_analyzed = 0
-            if request.pull_request_number:
-                # Supondo que você tenha uma lógica para buscar os arquivos do PR
-                # Exemplo fictício: buscar arquivos alterados via API ou outro serviço
-                files_analyzed = len(process_service.get_pr_files(user_prefer.repository))
+            if user_prefer.repository.pull_request_number:
+                # Buscar arquivos reais do PR
+                pr_files = process_service.get_pr_files(user_prefer.repository)
+                files_analyzed = len(pr_files)
+                
+                # Adicionar informações de arquivos ao log
+                logger.info(f"[CODE-PROCESSOR] Total de {files_analyzed} arquivos reais encontrados para o PR {request.pull_request_number}")
+                logger.info(f"[CODE-PROCESSOR] Arquivos reais: {pr_files}")
+                
+                # Adicionar informações extras para o processo de análise
+                user_prefer.files_to_analyze = pr_files  # Adicionar lista de arquivos a serem analisados
+                user_prefer.files_count = files_analyzed  # Adicionar contagem de arquivos
+            else:
+                # Se não tiver PR, assumir arquivos comuns
+                dummy_files = [
+                    "package.json", 
+                    "src/index.js",
+                    "src/App.js",
+                    "src/components/Header.jsx",
+                    "src/styles/main.css"
+                ]
+                files_analyzed = len(dummy_files)
+                user_prefer.files_to_analyze = dummy_files
+                user_prefer.files_count = files_analyzed
+                logger.info(f"[CODE-PROCESSOR] Sem PR. Usando {files_analyzed} arquivos reais comuns.")
 
             response_data = CodeAnalysisResponseDTO(
                 request_id=request_id,

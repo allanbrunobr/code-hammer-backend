@@ -20,5 +20,6 @@ class RepositoryDTO(BaseModel):
     repo_slug: Optional[str] = None
     pull_request_id: Optional[str] = None
     workspace: Optional[str] = None
+    integration_id: Optional[str] = None
 
 

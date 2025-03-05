@@ -52,7 +52,7 @@ class IntegrationService:
             logging.error(f"Error listing integrations: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error listing integrations: {str(e)}")
 
-    def get_open_pr(self, db: Session, repository_url: str, integration_id: UUID) -> Optional[dict]:
+    def get_open_pr(self, db: Session, repository_url: str, integration_id: UUID) -> Optional[List[dict]]:
         try:
             logging.info("==================== DEBUG GET OPEN PR SERVICE ====================")
             logging.info(f"Repository URL: {repository_url}")
@@ -63,14 +63,14 @@ class IntegrationService:
             integration = self.repository.get_integration_by_id(db, integration_id)
             if not integration:
                 logging.error(f"❌ Integração não encontrada com ID: {integration_id}")
-                return None
+                raise HTTPException(status_code=404, detail=f"Integration not found: {integration_id}")
                 
             # Extract owner and repo from URL
             repository_url = unquote(repository_url)
             parts = repository_url.replace("https://", "").replace("http://", "").split("/")
             if len(parts) < 2:
                 logging.error(f"Invalid repository URL format: {repository_url}")
-                return None
+                raise HTTPException(status_code=400, detail=f"Invalid repository URL format: {repository_url}")
                 
             # Se a URL começa com github.com, remover
             if parts[0] == "github.com" or parts[0] == "www.github.com":
@@ -78,6 +78,8 @@ class IntegrationService:
                 
             owner = parts[0]
             repo = parts[1]
+            if repo.endswith('.git'):
+                repo = repo[:-4]
             logging.info(f"Owner extraído: {owner}")
             logging.info(f"Repo extraído: {repo}")
             
@@ -86,11 +88,15 @@ class IntegrationService:
             logging.info(f"URL da API do GitHub: {github_api_url}")
             
             token = integration.repository_token
+            if not token:
+                logging.error("❌ Token não encontrado na integração")
+                raise HTTPException(status_code=401, detail="Repository token not found in integration")
+                
             masked_token = f"{token[:4]}...{token[-4:]}" if token else "None"
             logging.info(f"Token da integração (mascarado): {masked_token}")
             
             headers = {
-                "Authorization": f"token {integration.repository_token}",
+                "Authorization": f"token {token}",
                 "Accept": "application/vnd.github.v3+json"
             }
             
@@ -102,33 +108,59 @@ class IntegrationService:
                     logging.info(f"  {key}: {value}")
             
             logging.info("Fazendo requisição para a API do GitHub...")
-            response = requests.get(github_api_url, headers=headers)
-            
-            logging.info(f"Status code da resposta: {response.status_code}")
-            if response.status_code == 200:
+            try:
+                response = requests.get(github_api_url, headers=headers)
+                logging.info(f"Status code da resposta: {response.status_code}")
+                
+                if response.status_code == 401:
+                    logging.error("❌ Token inválido ou expirado")
+                    raise HTTPException(status_code=401, detail="Invalid or expired GitHub token")
+                elif response.status_code == 403:
+                    logging.error("❌ Rate limit excedido ou permissão negada")
+                    raise HTTPException(status_code=403, detail="GitHub API rate limit exceeded or permission denied")
+                elif response.status_code == 404:
+                    logging.error("❌ Repositório não encontrado")
+                    raise HTTPException(status_code=404, detail=f"Repository not found: {owner}/{repo}")
+                
+                response.raise_for_status()
+                
                 prs = response.json()
                 if prs:
-                    # Pegar o PR mais recente
-                    pr = prs[0]
-                    pr_info = {
-                        "number": pr["number"],
-                        "title": pr["title"],
-                        "html_url": pr["html_url"]
-                    }
-                    logging.info(f"✅ PR encontrado: {pr_info}")
+                    # Return all PRs instead of just the first one
+                    formatted_prs = []
+                    for pr in prs:
+                        # Format the PR title to be used as repository name in the table
+                        pr_title = f"{pr['title']}"
+                        
+                        # Estrutura mais clara e informativa para o frontend
+                        pr_info = {
+                            "title": pr_title,  # Título do PR
+                            "repository": f"{owner}/{repo}",  # Nome do repositório
+                            "author": pr["user"]["login"] if "user" in pr else "-",
+                            "file": pr["user"]["login"] if "user" in pr else "-",  # Mantém compatibilidade com frontend
+                            "date": pr["created_at"],
+                            "status": "open",
+                            "url": pr["html_url"],
+                            "number": pr["number"],
+                            "files_changed": pr.get("changed_files", None)
+                        }
+                        formatted_prs.append(pr_info)
+                    logging.info(f"✅ PRs encontrados: {formatted_prs}")
                     logging.info("==================== FIM DEBUG ====================")
-                    return pr_info
+                    return formatted_prs
                 else:
                     logging.info("❌ Nenhum PR aberto encontrado")
                     logging.info("==================== FIM DEBUG ====================")
-                    return None
-            else:
-                logging.error(f"❌ Erro na API do GitHub: {response.status_code}")
-                logging.error(f"Resposta: {response.text}")
-                logging.info("==================== FIM DEBUG ====================")
-                return None
+                    return []
+                    
+            except requests.exceptions.RequestException as e:
+                logging.error(f"❌ Erro na requisição para a API do GitHub: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"GitHub API request failed: {str(e)}")
             
+        except HTTPException as e:
+            logging.error(f"❌ HTTPException: {str(e.detail)}")
+            raise
         except Exception as e:
             logging.error(f"❌ Erro ao verificar PRs abertos: {str(e)}")
             logging.info("==================== FIM DEBUG ====================")
-            return None
+            raise HTTPException(status_code=500, detail=str(e))
