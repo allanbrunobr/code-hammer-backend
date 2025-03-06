@@ -1,20 +1,20 @@
 version: '3.8'
 
 services:
-  db:
+  postgres:
     image: postgres:15
-    container_name: postgresql-codehammer
+    container_name: postgres
     restart: always
-    env_file:
-      - .env
     environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=M3t4tr0n
+      - POSTGRES_DB=config_manager
     ports:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./config-manager/scripts/create_tables.sql:/docker-entrypoint-initdb.d/01-create_tables.sql
+      - ./config-manager/scripts/insert_data.sql:/docker-entrypoint-initdb.d/02-insert_data.sql
     networks:
       - codehammer-network
 
@@ -24,14 +24,37 @@ services:
       dockerfile: Dockerfile
     container_name: config-manager
     restart: always
-    env_file:
-      - ./config-manager/.env
     environment:
-      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - APPLICATION_URL=http://localhost:8082
+      - APPLICATION_ORIGINS=*
+      - APPLICATION_API_KEYS=minhachavedeautenticacao
+      - DATABASE_URL=postgresql://postgres:M3t4tr0n@postgres/config_manager
+      - GOOGLE_API_KEY=AIzaSyAu4BEFz_G_e8DLWKizgsT_d6nqF9LWZ3g
+      - GOOGLE_AI_MODEL_NAME=gemini-1.5-flash
+      - GOOGLE_PROJECT=arcane-text-377602
+      - GOOGLE_LOCATION=us-central1
+      - GOOGLE_AI_EMBEDDINGS_MODEL_NAME=textembedding-gecko@003
+      - SECRET_KEY=mysecretkey
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - PROJECT_ID=arcane-text-377602
+      - TOPIC_ID=code-to-analyze
+      - SUBSCRIPTION_ID=code-to-analyze-sub
+      - DB_USER=postgres
+      - DB_PASSWORD=M3t4tr0n
+      - DB_NAME=config_manager
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - GOOGLE_APPLICATION_CREDENTIALS=/srv/google-credentials.json
+      - STRIPE_SECRET_KEY=sk_test_51Qyg1gKg8PaHMKkrhFbkEHEMqimp48CFl8p5EUmXGWgDLZUlwFVlr0cydzmCCVlraokoAI7U4hOrDM3Y0ys1A0Qg00lxaz3dua
+      - STRIPE_WEBHOOK_SECRET=whsec_ZtsLuUdTIRdWyJ7ETmkE0VkOA7cZl8JB
+    volumes:
+      - ./credentials/google-credentials.json:/srv/google-credentials.json:ro
+      - ./config-manager/credentials:/srv/credentials:ro
     ports:
-      - '8083:8083'
+      - '8082:8082'
     depends_on:
-      - db
+      - postgres
     networks:
       - codehammer-network
 
@@ -41,17 +64,36 @@ services:
       dockerfile: Dockerfile
     container_name: code-processor
     restart: always
-    env_file:
-      - ./code-processor/.env
     environment:
-      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
-      - CONFIG_MANAGER_URL=http://config-manager:8083
-      - PROJECT_ID=${PROJECT_ID}
-      - TOPIC_ID=${TOPIC_ID}
+      - APPLICATION_URL=http://localhost:8081
+      - APPLICATION_ORIGINS=*
+      - APPLICATION_API_KEYS=minhachavedeautenticacao
+      - DATABASE_URL=postgresql://postgres:M3t4tr0n@postgres/config_manager
+      - CONFIG_MANAGER_URL=http://config-manager:8082
+      - GOOGLE_API_KEY=AIzaSyAu4BEFz_G_e8DLWKizgsT_d6nqF9LWZ3g
+      - GOOGLE_AI_MODEL_NAME=gemini-1.5-flash
+      - GOOGLE_PROJECT=arcane-text-377602
+      - GOOGLE_LOCATION=us-central1
+      - GOOGLE_AI_EMBEDDINGS_MODEL_NAME=textembedding-gecko@003
+      - SECRET_KEY=mysecretkey
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - PROJECT_ID=arcane-text-377602
+      - TOPIC_ID=code-to-analyze
+      - SUBSCRIPTION_ID=code-to-analyze-sub
+      - DB_USER=postgres
+      - DB_PASSWORD=M3t4tr0n
+      - DB_NAME=config_manager
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - GOOGLE_APPLICATION_CREDENTIALS=/srv/google-credentials.json
+    volumes:
+      - ./credentials/google-credentials.json:/srv/google-credentials.json:ro
+      - ./code-processor/credentials:/srv/credentials:ro
     ports:
-      - '8084:8084'
+      - '8081:8081'
     depends_on:
-      - db
+      - postgres
       - config-manager
     networks:
       - codehammer-network
@@ -62,36 +104,64 @@ services:
       dockerfile: Dockerfile
     container_name: code-analyzer
     restart: always
-    env_file:
-      - ./code-analyzer/.env
     environment:
-      - PROJECT_ID=${PROJECT_ID}
-      - SUBSCRIPTION_ID=${SUBSCRIPTION_ID}
-      - GOOGLE_AI_MODEL_NAME=${GOOGLE_AI_MODEL_NAME}
-      - GOOGLE_PROJECT=${GOOGLE_PROJECT}
-      - GOOGLE_LOCATION=${GOOGLE_LOCATION}
-    ports:
-      - '8082:8082'
+      - APPLICATION_URL=http://localhost:8080
+      - APPLICATION_ORIGINS=*
+      - APPLICATION_API_KEYS=minhachavedeautenticacao
+      - DATABASE_URL=postgresql://postgres:M3t4tr0n@postgres/config_manager
+      - GOOGLE_API_KEY=AIzaSyAu4BEFz_G_e8DLWKizgsT_d6nqF9LWZ3g
+      - GOOGLE_AI_MODEL_NAME=gemini-1.5-flash
+      - GOOGLE_PROJECT=arcane-text-377602
+      - GOOGLE_LOCATION=us-central1
+      - GOOGLE_AI_EMBEDDINGS_MODEL_NAME=textembedding-gecko@003
+      - SECRET_KEY=mysecretkey
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - PROJECT_ID=arcane-text-377602
+      - TOPIC_ID=code-to-analyze
+      - SUBSCRIPTION_ID=code-to-analyze-sub
+      - DB_USER=postgres
+      - DB_PASSWORD=M3t4tr0n
+      - DB_NAME=config_manager
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - GOOGLE_APPLICATION_CREDENTIALS=/srv/google-credentials.json
     volumes:
-      - ${GOOGLE_APPLICATION_CREDENTIALS_PATH}:/app/credentials.json
+      - ./credentials/google-credentials.json:/srv/google-credentials.json:ro
+      - ./code-analyzer/credentials:/srv/credentials:ro
+    ports:
+      - '8080:8080'
     depends_on:
+      - postgres
       - code-processor
     networks:
       - codehammer-network
-
-  portal-web:
+      
+  # Novo serviço para o frontend
+  frontend:
     build:
-      context: ../portal-web
+      context: /Users/bruno/portal-web
       dockerfile: Dockerfile
-    container_name: portal-web
+    container_name: frontend
     restart: always
     environment:
-      - REACT_APP_API_URL=http://code-analyzer:8082
+      - REACT_APP_API_URL=http://config-manager:8082
+      - REACT_APP_CONFIG_MANAGER_URL=http://config-manager:8082
+      - REACT_APP_CODE_ANALYZER_URL=http://code-analyzer:8080
+      - REACT_APP_CODE_PROCESSOR_URL=http://code-processor:8081
+      - REACT_APP_FIREBASE_API_KEY=AIzaSyBDQWs_koShk_UBYh0yAquw-2VVvW-61yA
+      - REACT_APP_FIREBASE_AUTH_DOMAIN=code-hammer-f5b2b.firebaseapp.com
+      - REACT_APP_FIREBASE_PROJECT_ID=code-hammer-f5b2b
+      - REACT_APP_FIREBASE_STORAGE_BUCKET=code-hammer-f5b2b.firebasestorage.app
+      - REACT_APP_FIREBASE_MESSAGING_SENDER_ID=924039068129
+      - REACT_APP_FIREBASE_APP_ID=1:924039068129:web:9564f601c507066ace3aa0
+      - REACT_APP_STRIPE_PUBLIC_KEY=pk_live_51Qyg1gKg8PaHMKkrTxjEvCL45nIZ1wqKPlEGL6FvR7j0ACtIgOuMwNHGzEkUJ67w7587MPSaavHIr86fH5eAnvFW00BSTd89pw
     ports:
-      - '3000:80'
+      - '3000:3000'
     depends_on:
-      - code-analyzer
       - config-manager
+      - code-processor
+      - code-analyzer
     networks:
       - codehammer-network
 

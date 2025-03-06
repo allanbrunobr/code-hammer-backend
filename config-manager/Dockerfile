@@ -15,7 +15,11 @@ COPY . .
 ARG APPLICATION_URL=http://localhost:5000/
 ARG APPLICATION_ORIGINS=*
 ARG APPLICATION_API_KEYS=/path/to/application_default_credentials.json
-ARG DATABASE_URL=postgresql://user:password@config_db/config_manager
+ARG DB_USER=postgres
+ARG DB_PASSWORD=@M3t4tr0n@
+ARG DB_NAME=postgres
+ARG DB_HOST=db.rwptfpwqnjaghvkzjukx.supabase.co
+ARG DB_PORT=5432
 ARG GOOGLE_API_KEY=AIzaSyAu4BEFz_G_e8DLWKizgsT_d6nqF9LWZ3g
 ARG GOOGLE_AI_MODEL_NAME=gemini-1.5-flash
 ARG GOOGLE_PROJECT=arcane-text-377602
@@ -32,7 +36,11 @@ ARG SUBSCRIPTION_ID=code-to-analyze-sub
 ENV APPLICATION_URL=${APPLICATION_URL}
 ENV APPLICATION_ORIGINS=${APPLICATION_ORIGINS}
 ENV APPLICATION_API_KEYS=${APPLICATION_API_KEYS}
-ENV DATABASE_URL=${DATABASE_URL}
+ENV DB_USER=${DB_USER}
+ENV DB_PASSWORD=${DB_PASSWORD}
+ENV DB_NAME=${DB_NAME}
+ENV DB_HOST=${DB_HOST}
+ENV DB_PORT=${DB_PORT}
 ENV GOOGLE_API_KEY=${GOOGLE_API_KEY}
 ENV GOOGLE_AI_MODEL_NAME=${GOOGLE_AI_MODEL_NAME}
 ENV GOOGLE_PROJECT=${GOOGLE_PROJECT}
@@ -48,5 +56,5 @@ ENV SUBSCRIPTION_ID=${SUBSCRIPTION_ID}
 
 ENV PYTHONPATH=/srv
 
-EXPOSE 80
-CMD ["/usr/local/bin/wait-for-it", "config-db:5432", "--", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+EXPOSE 8082
+CMD ["/usr/local/bin/wait-for-it", "postgres:5432", "--", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8082"]
