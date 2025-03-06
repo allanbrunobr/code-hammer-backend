@@ -1700,3 +1700,6 @@ migrate_data_to_supabase.py
 MIGRATION_README.md
 README.md
 README.md
+.env
+# Google Cloud credentials
+credentials/
