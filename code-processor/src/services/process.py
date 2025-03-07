@@ -91,7 +91,7 @@ class ProcessService:
             logger.info(f"[PROCESS-SERVICE] Buscando arquivos para PR #{pr_number} da integração {repository.integration_id}")
             
             # Determinar a URL base do code-analyzer (o mesmo serviço usado pelo frontend)
-            code_analyzer_url = os.environ.get("CODE_ANALYZER_URL", "http://localhost:8080")
+            code_analyzer_url = os.environ.get("CODE_ANALYZER_URL", "http://localhost:8083")
             
             # Usar a mesma abordagem do frontend para obter os arquivos
             url = f"{code_analyzer_url}/api/v1/integrations/{repository.integration_id}/pull-requests/{pr_number}/files"
