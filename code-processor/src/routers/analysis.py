@@ -168,13 +168,23 @@ async def analyze_code(
                 prompt_parts.append(f"The code is from a file named '{request.file_name}'")
                 logger.info(f"[CODE-PROCESSOR] Nome do arquivo: {request.file_name}")
             
-            # Construir prompt personalizado
-            custom_prompt = "You are an expert code analyst. " + " and ".join(prompt_parts) + "."
-            custom_prompt += "\n\n{code}\n\nYou should format in markdown translated to {language}"
+            # Construir template do prompt personalizado
+            prompt_template = "You are an expert code analyst. " + " and ".join(prompt_parts) + "."
+            prompt_template += "\n\n{code}\n\n"
+            prompt_template += "You should format in markdown translated to {language}. "
+            prompt_template += "For each suggestion, whenever possible, include a 'Código revisado:' section with the improved code in a markdown code block that users can copy. "
+            prompt_template += "In the revised code, add comments to each section where a change was made. "
+            prompt_template += "Make sure the revised code is complete and functional, incorporating all the suggested improvements."
+            
+            # Formatar o prompt com o código e idioma do usuário
+            formatted_prompt = prompt_template.format(
+                code="{code}",  # Mantém o placeholder {code} para ser substituído posteriormente
+                language=user_prefer.language or 'Portuguese/BR'
+            )
             
             # Atualizar o prompt no user_prefer
-            user_prefer.prompt = custom_prompt
-            logger.info(f"[CODE-PROCESSOR] Prompt personalizado criado com {len(custom_prompt)} caracteres")
+            user_prefer.prompt = formatted_prompt
+            logger.info(f"[CODE-PROCESSOR] Prompt personalizado criado com {len(formatted_prompt)} caracteres")
             
             # Verificar se há código fornecido ou se deve analisar todo o projeto
             if not request.code and not user_prefer.repository.pull_request_number:
