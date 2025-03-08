@@ -91,16 +91,58 @@ async def analyze_code(
             user_prefer.post_comment = request.post_comment
             logger.info(f"[CODE-PROCESSOR] Post Comment: {user_prefer.post_comment}")
                 
-            # Personalizar o prompt de acordo com os tipos de análise solicitados
+            # Verificar se a integração tem tipos de análise específicos
+            integration = user_service._get_integration_by_id(request.integration_id)
+            integration_analyze_types = None
+            
+            if integration and 'analyze_types' in integration and integration['analyze_types']:
+                # Extrair os tipos de análise da integração (formato: "tipo1,tipo2,tipo3")
+                integration_analyze_types = integration['analyze_types'].split(',')
+                logger.info(f"[CODE-PROCESSOR] Tipos de análise da integração: {integration_analyze_types}")
+            
+            # Personalizar o prompt de acordo com os tipos de análise
             prompt_parts = []
             
-            if "all" in [t.value for t in request.analysis_types]:
-                # Se 'all' estiver presente, usar prompt completo
+            if integration_analyze_types:
+                # Se a integração tem tipos de análise específicos, usar esses
+                # Mapeamento para os tipos de análise da integração
+                integration_mappings = {
+                    "componentizacao": "componentization",
+                    "otimizacaoBigO": "optimization (BIG O)",
+                    "duplicidade": "duplication",
+                    "codigoLimpo": "code quality",
+                    "seguranca": "security issues",
+                    "performance": "performance optimizations",
+                    "bugs": "bugs and logical errors",
+                    "codeSmells": "code smells",
+                    "vulnerabilidades": "security vulnerabilities",
+                    "owasp": "OWASP principles",
+                    "solid": "SOLID principles"
+                }
+                
+                selected_analyses = []
+                for analysis_type in integration_analyze_types:
+                    analysis_type = analysis_type.strip()
+                    if analysis_type in integration_mappings:
+                        selected_analyses.append(integration_mappings[analysis_type])
+                    else:
+                        # Se não encontrar no mapeamento, usar o valor original
+                        selected_analyses.append(analysis_type)
+                
+                if selected_analyses:
+                    prompt_parts.append(f"analyze this code for: {', '.join(selected_analyses)}")
+                    logger.info(f"[CODE-PROCESSOR] Tipos de análise da integração: {', '.join(selected_analyses)}")
+                else:
+                    # Se não conseguir mapear nenhum tipo, usar o padrão
+                    prompt_parts.append("analyze this code for quality, security, performance, bugs, code smells, and vulnerabilities")
+                    logger.info(f"[CODE-PROCESSOR] Usando tipos de análise padrão (nenhum tipo da integração mapeado)")
+            elif "all" in [t.value for t in request.analysis_types]:
+                # Se 'all' estiver presente na requisição e não tiver tipos da integração, usar prompt completo
                 prompt_parts.append("analyze this code for quality, security, performance, bugs, code smells, and vulnerabilities")
                 prompt_parts.append("comment if the code follows the fundamentals of OWASP and SOLID principles")
                 logger.info(f"[CODE-PROCESSOR] Tipo de análise: completa")
             else:
-                # Caso contrário, construir prompt baseado nos tipos de análise solicitados
+                # Caso contrário, construir prompt baseado nos tipos de análise da requisição
                 analysis_mappings = {
                     "codeQuality": "code quality",
                     "security": "security issues",
@@ -119,7 +161,7 @@ async def analyze_code(
                 
                 if selected_analyses:
                     prompt_parts.append(f"analyze this code for: {', '.join(selected_analyses)}")
-                    logger.info(f"[CODE-PROCESSOR] Tipos de análise selecionados: {', '.join(selected_analyses)}")
+                    logger.info(f"[CODE-PROCESSOR] Tipos de análise da requisição: {', '.join(selected_analyses)}")
             
             # Incluir informações do arquivo se fornecidas
             if request.file_name:
