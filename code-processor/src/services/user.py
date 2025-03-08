@@ -11,7 +11,8 @@ from ..utils.environment import Environment
 logger = logging.getLogger(__name__)
 
 # Corrigindo a URL do config-manager para usar a porta 8082 em vez de 8083
-CONFIG_MANAGER_URL = Environment.get("CONFIG_MANAGER_URL", "http://localhost:8082")
+#CONFIG_MANAGER_URL = Environment.get("CONFIG_MANAGER_URL", "http://localhost:8082")
+CONFIG_MANAGER_URL = "http://localhost:8082"
 
 class UserService:
 
