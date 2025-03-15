@@ -1,0 +1,20 @@
+FASE5_INTEGRACAO_BANCO.md
+FASE5_STRIPE_RESUMO.md
+list_db_plans.py
+list_stripe_products.py
+test_payment_service.py
+INTEGRATION_STRIPE.md
+test_stripe_client.py
+update_tables_stripe.py
+verify_schema.py
+config-manager/FASE4_STRIPE_RESUMO.md
+config-manager/STRIPE_INTEGRATION.md
+
+# Virtual environment
+.venv/
+*/.venv/
+**/__pycache__/
+*.pyc
+
+# Google Cloud credentials
+credentials/
