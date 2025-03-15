@@ -22,3 +22,17 @@ venv/
 .venv/
 code-analyzer/venv/
 code-processor/.venv/
+code-analyzer/.DS_Store
+code-analyzer/.env
+code-analyzer/api-keys.json
+code-analyzer/fix_db.py
+code-analyzer/local.py
+code-analyzer/pytest.py
+code-analyzer/restart_server.sh
+code-analyzer/start.sh
+code-analyzer/test_diagnostics_quota.py
+code-analyzer/pytest.ini
+code-processor/pytest.ini
+code-processor/local.py
+.DS_Store
+.env
